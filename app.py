@@ -125,11 +125,9 @@ if resume_text:
                 resume_text,
                 job_description
             )
-st.subheader("🤖 AI Suggestions")
+            st.subheader("🤖 AI Suggestions")
 
             st.write(suggestions)
-
-
 else:
 
     st.info("Upload Resume to Start Analysis")
