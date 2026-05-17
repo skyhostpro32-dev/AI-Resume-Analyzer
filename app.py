@@ -13,21 +13,19 @@ from utils.openai_helper import get_ai_suggestions
 
 st.set_page_config(
     page_title="AI Resume Analyzer",
-layout="wide"
+    layout="wide"
 )
 
-
-# ---------------- LOAD CSS ----------------
+# ---------------- CUSTOM CSS ----------------
 
 with open("styles.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-
 # ---------------- TITLE ----------------
+
 st.title("🚀 AI Resume Analyzer & ATS Optimizer")
 
-st.write("Upload your resume and analyze ATS score using AI")
-
+st.write("Upload your resume and analyze ATS score using AI.")
 
 # ---------------- SIDEBAR ----------------
 
@@ -41,34 +39,60 @@ uploaded_file = st.sidebar.file_uploader(
 job_description = st.sidebar.text_area(
     "Paste Job Description"
 )
-# ---------------- RESUME EXTRACTION ----------------
+
+analyze_button = st.sidebar.button("Analyze Resume")
+
+# ---------------- RESUME TEXT ----------------
 
 resume_text = ""
 
+# ---------------- FILE EXTRACTION ----------------
+
 if uploaded_file:
 
-    if uploaded_file.name.endswith(".pdf"):
-        resume_text = extract_pdf_text(uploaded_file)
+    try:
 
-    elif uploaded_file.name.endswith(".docx"):
-        resume_text = extract_docx_text(uploaded_file)
+        # PDF
+        if uploaded_file.name.endswith(".pdf"):
+            resume_text = extract_pdf_text(uploaded_file)
 
+        # DOCX
+        elif uploaded_file.name.endswith(".docx"):
+            resume_text = extract_docx_text(uploaded_file)
 
-# ---------------- ANALYSIS ----------------
-if resume_text:
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
 
-    st.success("Resume Uploaded Successfully ✅")
+# ---------------- MAIN ANALYSIS ----------------
 
+if analyze_button and resume_text:
 
-    # Extract Skills
+    st.success("✅ Resume Uploaded Successfully")
+
+    # ---------------- DEFAULT JD ----------------
+
+    if not job_description:
+        job_description = "General AI Engineer role"
+
+    # ---------------- SKILL EXTRACTION ----------------
+
     skills_found = extract_skills(resume_text)
 
+    # ---------------- ATS SCORE ----------------
 
-    # ATS Score
-    ats_score = calculate_ats_score(resume_text, skills_found)
+    ats_score = calculate_ats_score(
+        resume_text,
+        skills_found
+    )
 
+    # ---------------- MATCH SCORE ----------------
 
-    # ---------------- TOP CARDS ----------------
+    match_score = min(
+        50 + len(skills_found) * 5,
+        100
+    )
+
+    # ---------------- TOP METRICS ----------------
 
     col1, col2, col3 = st.columns(3)
 
@@ -79,18 +103,23 @@ if resume_text:
         st.metric("Skills Found", len(skills_found))
 
     with col3:
-        if job_description:
-            st.metric("JD Match", "78%")
-        else:
-            st.metric("JD Match", "N/A")
+        st.metric("JD Match", f"{match_score}%")
 
+    # ---------------- SKILLS SECTION ----------------
 
-    # ---------------- SKILLS ----------------
     st.subheader("🛠 Skills Found")
-    
-    for skill in skills_found:
-        st.success(skill)
 
+    if skills_found:
+
+        skill_cols = st.columns(4)
+
+        for index, skill in enumerate(skills_found):
+
+            with skill_cols[index % 4]:
+                st.success(skill)
+
+    else:
+        st.warning("No skills detected.")
 
     # ---------------- CHART ----------------
 
@@ -101,10 +130,19 @@ if resume_text:
             "Value": [1] * len(skills_found)
         })
 
-        fig = px.bar(df, x="Skill", y="Value")
+        fig = px.bar(
+            df,
+            x="Skill",
+            y="Value",
+            title="Detected Skills"
+        )
 
-        st.plotly_chart(fig, use_container_width=True)
- # ---------------- RESUME PREVIEW ----------------
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
+
+    # ---------------- RESUME PREVIEW ----------------
 
     st.subheader("📄 Resume Preview")
 
@@ -114,22 +152,37 @@ if resume_text:
         height=300
     )
 
-
     # ---------------- AI SUGGESTIONS ----------------
 
-    if st.button("✨ Generate AI Suggestions"):
+    st.subheader("🤖 AI Suggestions")
 
-        with st.spinner("Analyzing Resume..."):
+    if st.button("Generate AI Suggestions"):
 
-            suggestions = get_ai_suggestions(
-                resume_text,
-                job_description
-            )
-            st.subheader("🤖 AI Suggestions")
+        with st.spinner("Analyzing Resume using AI..."):
 
-            st.write(suggestions)
+            try:
+
+                suggestions = get_ai_suggestions(
+                    resume_text,
+                    job_description
+                )
+
+                st.success("AI Analysis Completed ✅")
+
+                st.write(suggestions)
+
+            except Exception as e:
+
+                st.error(f"OpenAI Error: {e}")
+
 else:
 
-    st.info("Upload Resume to Start Analysis")
+    st.info("📌 Upload a Resume and Click 'Analyze Resume'")
 
-st.title("🚀 AI Resume Analyzer & ATS Optimizer")
+# ---------------- FOOTER ----------------
+
+st.markdown("---")
+
+st.caption(
+    "Built with ❤️ using Python, Streamlit & OpenAI"
+)
