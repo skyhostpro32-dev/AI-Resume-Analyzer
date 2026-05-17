@@ -86,8 +86,8 @@ if resume_text:
 
 
     # ---------------- SKILLS ----------------
-st.subheader("🛠 Skills Found")
-
+    st.subheader("🛠 Skills Found")
+    
     for skill in skills_found:
         st.success(skill)
 
